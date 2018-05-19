@@ -1,7 +1,7 @@
 # CORN
 COmputation Reuse-aware Neural network accelerator
 
-This branch of CORN does not include pipelined version.
+This branch of CORN is a pipelined version.
 
 Published in: IEEE Computer Architecture Letters ( Volume: 16, Issue: 1, Jan.-June 1 2017 )
 
