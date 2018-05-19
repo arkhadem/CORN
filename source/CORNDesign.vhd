@@ -18,22 +18,20 @@ END ENTITY;
 
 --ARCHITECTURE 1: GateLevel
 ARCHITECTURE GateLevel OF CORNDesign IS
-	SIGNAL InputLd, WeightEn, AFEn, WRTEn, AccLd, CountEn, InputBufferEn, OutputLd, CountDone: STD_LOGIC;
+	SIGNAL AFEn_OutputLd, WeightEn_WRTEn_AccLd, CountEn_InputBufferEn, CountDone, InputLd, PipeLineEn, S6OutputLd: STD_LOGIC;
 	SIGNAL Q: InputWeightType;
 BEGIN
 	CORNDATAPATH: ENTITY WORK.DataPath(GateLevel) port map(
 		Clk => Clk,
 		Rst => Rst,
-		WeightEn => WeightEn,
-		AFEn => AFEn,
-		WRTEn => WRTEn,
-		AccLd => AccLd,
-		CountEn => CountEn,
-		InputBufferEn => InputBufferEn,
-		OutputLd => OutputLd,
+		PipeLineEn => PipeLineEn,
+		AFEn_OutputLd => AFEn_OutputLd,
+		WeightEn_WRTEn_AccLd => WeightEn_WRTEn_AccLd,
+		CountEn_InputBufferEn => CountEn_InputBufferEn,
 		Inputs => Inputs,
 		InputBufferWriteEn => InputLd,
 		CountDone => CountDone,
+		S6OutputLd => S6OutputLd,
 		Q => Q
 	);
 	CORNCONTROLLER: ENTITY WORK.Controller(Behavioral) port map(
@@ -41,15 +39,13 @@ BEGIN
 		Rst => Rst,
 		En => En,
 		InputReady => InputReady,
-		WeightEn => WeightEn,
-		AFEn => AFEn,
-		WRTEn => WRTEn,
-		AccLd => AccLd,
-		CountEn => CountEn,
-		InputBufferEn => InputBufferEn,
-		OutputLd => OutputLd,
+		PipeLineEn => PipeLineEn,
+		AFEn_OutputLd => AFEn_OutputLd,
+		WeightEn_WRTEn_AccLd => WeightEn_WRTEn_AccLd,
+		CountEn_InputBufferEn => CountEn_InputBufferEn,
 		InputBufferWriteEn => InputLd,
 		CountDone => CountDone,
+		S6OutputLd => S6OutputLd,
 		Done => Done
 	);
 	Q1 <= Q(0);

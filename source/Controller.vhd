@@ -12,15 +12,13 @@ ENTITY Controller IS
 		Rst: IN STD_LOGIC;
 		En: IN STD_LOGIC;
 		InputReady: IN STD_LOGIC;
-		WeightEn: OUT STD_LOGIC;
-		AFEn: OUT STD_LOGIC;
-		WRTEn: OUT STD_LOGIC;
-		AccLd: OUT STD_LOGIC;
-		CountEn: OUT STD_LOGIC;
-		InputBufferEn: OUT STD_LOGIC;
-		OutputLd: OUT STD_LOGIC;
+		PipeLineEn: OUT STD_LOGIC;
+		AFEn_OutputLd: OUT STD_LOGIC;
+		WeightEn_WRTEn_AccLd: OUT STD_LOGIC;
+		CountEn_InputBufferEn: OUT STD_LOGIC;
 		InputBufferWriteEn: OUT STD_LOGIC;
 		CountDone: IN STD_LOGIC;
+		S6OutputLd: IN STD_LOGIC;
 		Done: OUT STD_LOGIC
 	);
 END ENTITY;
@@ -31,12 +29,9 @@ ARCHITECTURE Behavioral OF Controller IS
 		WaitForReady,	--Wait For InputReady to Become 1
 		AdjustInputs,	--Load Input Array
 		ReadyToCalculate,	--Nothing is Doing and Everything is Getting Ready for Calculation
-		Start1,	--WRT Signals are Active
-		Start2,	--WRT and Weight Signals are Active
-		MidCalculation,	--WRT, Weight and Calc Signals are Active
-		Finish1,	--Weight and Calc Signals are Active
-		Finish2,	--Calc Signals are Active
+		Calculation,	--All Signals are Active
 		LDOutputs,		--Calculating outputs using Activation Function Unit
+		WaitForFinish,	--Wait for Pipeline to Finish
 		DoneFlag		--Done Flag should become 1 for 1 cycle
 	);
 	SIGNAL CurrentState, NextState: StateType;
@@ -51,7 +46,7 @@ BEGIN
 		end if;
 	end process;
 
-	process(CurrentState, InputReady, CountDone) begin
+	process(CurrentState, InputReady, CountDone, S6OutputLd) begin
 		case CurrentState is
 			when WaitForReady =>
 				if (InputReady = '1') then
@@ -68,29 +63,24 @@ BEGIN
 				end if;
 
 			when ReadyToCalculate =>
-				NextState <= Start1;
+				NextState <= Calculation;
 
-			when Start1 =>
-				NextState <= Start2;
-
-			when Start2 =>
-				NextState <= MidCalculation;
-
-			when MidCalculation =>
+			when Calculation =>
 				if (CountDone = '1') then
-					NextState <= Finish1;
+					NextState <= LDOutputs;
 				else
-					NextState <= MidCalculation;
+					NextState <= Calculation;
 				end if;
 
-			when Finish1 =>
-				NextState <= Finish2;
-
-			when Finish2 =>
-				NextState <= LDOutputs;
-
 			when LDOutputs =>
-				NextState <= DoneFlag;
+				NextState <= WaitForFinish;
+
+			when WaitForFinish =>
+				if (S6OutputLd = '1') then
+					NextState <= DoneFlag;
+				else
+					NextState <= WaitForFinish;
+				end if;
 
 			when DoneFlag =>
 				NextState <= WaitForReady;
@@ -101,76 +91,41 @@ BEGIN
 	end process;
 
 	process(CurrentState) begin
-		WeightEn <= '0';
-		AFEn <= '0';
-		WRTEn <= '0';
-		AccLd <= '0';
-		CountEn <= '0';
-		InputBufferEn <= '0';
-		OutputLd <= '0';
+		AFEn_OutputLd <= '0';
+		WeightEn_WRTEn_AccLd <= '0';
+		CountEn_InputBufferEn <= '0';
 		InputBufferWriteEn <= '0';
 		Done <= '0';
+		PipeLineEn <= '0';
 		case CurrentState is
 			when AdjustInputs =>
 				InputBufferWriteEn <= '1';
-				CountEn <= '1';
-				InputBufferEn <= '1';
+				CountEn_InputBufferEn <= '1';
 
-			when Start1 =>
+			when Calculation =>
+				CountEn_InputBufferEn <= '1';
 				--WRT Signals:
-				CountEn <= '1';
-				WRTEn <= '1';
-
-			when Start2 =>
-				--WRT Signals:
-				CountEn <= '1';
-				WRTEn <= '1';
+				WeightEn_WRTEn_AccLd <= '1';
 				--Weight Signals:
-				CountEn <= '1';
-				InputBufferEn <= '1';
-				WeightEn <= '1';
-
-			when MidCalculation =>
-				--WRT Signals:
-				CountEn <= '1';
-				WRTEn <= '1';
-				--Weight Signals:
-				CountEn <= '1';
-				InputBufferEn <= '1';
-				WeightEn <= '1';
 				--Calc Signals:
-				CountEn <= '1';
-				AccLd <= '1';
-
-			when Finish1 =>
-				--Weight Signals:
-				CountEn <= '1';
-				InputBufferEn <= '1';
-				WeightEn <= '1';
-				--Calc Signals:
-				CountEn <= '1';
-				AccLd <= '1';
-
-			when Finish2 =>
-				--Calc Signals:
-				CountEn <= '1';
-				AccLd <= '1';
+				--Pipeline Enables
+				PipeLineEn <= '1';
 
 			when LDOutputs =>
-				AFEn <= '1';
-				OutputLd <= '1';
+				AFEn_OutputLd <= '1';
+				PipeLineEn <= '1';
+
+			when WaitForFinish =>
+				PipeLineEn <= '1';
 
 			when DoneFlag =>
 				Done <= '1';
 
 			when others =>
-				WeightEn <= '0';
-				AFEn <= '0';
-				WRTEn <= '0';
-				AccLd <= '0';
-				CountEn <= '0';
-				InputBufferEn <= '0';
-				OutputLd <= '0';
+				PipeLineEn <= '0';
+				AFEn_OutputLd <= '0';
+				WeightEn_WRTEn_AccLd <= '0';
+				CountEn_InputBufferEn <= '0';
 				InputBufferWriteEn <= '0';
 				Done <= '0';
 
